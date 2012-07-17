@@ -17,8 +17,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zj.w3x.main.FilmInfo;
-import com.zj.w3x.main.W3X;
+import com.zj.w3x.FilmInfo;
+import com.zj.w3x.W3X;
 
 public class MainTest {
 	

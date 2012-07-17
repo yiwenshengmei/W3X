@@ -1,4 +1,4 @@
-package com.zj.w3x.main;
+package com.zj.w3x;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
