@@ -1,25 +1,26 @@
 package com.zj.w3x.main;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class FilmInfo {
 	private List<String> desc;
 	private List<String> link;
-	private List<String> pics;
-	private Map<String, byte[]> picsBinary;
+	private List<String> imageSrcs;
 	private String source;
 	private String url;
 	
-	public FilmInfo(List<String> desc, List<String> link, List<String> pics, String source, String url) {
+	public FilmInfo(List<String> desc, List<String> link, List<String> imageSrcs, String source, String url) {
 		this.desc = desc;
 		this.link = link;
-		this.pics = pics;
+		this.imageSrcs = imageSrcs;
 		this.source = source;
 		this.url = url;
 	}
 	
 	public FilmInfo() {
-		
+		desc = new ArrayList<String>();
+		link = new ArrayList<String>();
+		imageSrcs = new ArrayList<String>();
 	}
 	
 	public List<String> getDesc() {
@@ -34,17 +35,11 @@ public class FilmInfo {
 	public void setLink(List<String> link) {
 		this.link = link;
 	}
-	public List<String> getPics() {
-		return pics;
+	public List<String> getImageSrcs() {
+		return imageSrcs;
 	}
-	public void setPics(List<String> pics) {
-		this.pics = pics;
-	}
-	public Map<String, byte[]> getPicsBinary() {
-		return picsBinary;
-	}
-	public void setPicsBinary(Map<String, byte[]> picsBinary) {
-		this.picsBinary = picsBinary;
+	public void setImageSrcs(List<String> imageSrcs) {
+		this.imageSrcs = imageSrcs;
 	}
 	public String getSource() {
 		return source;
@@ -57,5 +52,24 @@ public class FilmInfo {
 	}
 	public void setUrl(String url) {
 		this.url = url;
+	}
+
+	@Override
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+		String spliter = "\n------------------------------------";
+		sb.append(spliter).append("\n");
+		sb.append("from url: ").append(url).append("\n");
+		for (String d : desc) {
+			sb.append("desc: ").append(d).append("\n");
+		}
+		for (String src : imageSrcs) {
+			sb.append("image: ").append(src).append("\n");
+		}
+		for (String l : link) {
+			sb.append("link: ").append(l).append("\n");
+		}
+		sb.append("------------------------------------");
+		return sb.toString();
 	}
 }

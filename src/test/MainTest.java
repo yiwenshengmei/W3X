@@ -9,8 +9,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,10 +26,18 @@ public class MainTest {
 	
 	@Test
 	public void testRegex() {
-		String source0 = "nihao   <img src=\"xxxxxxx\"></img>  12344444";
-		String source1 = "<img src='xxxxxxx'/>";
-		Pattern pattern = Pattern.compile("\b<img src=\"(.+?)\".*?>\b");
-		String[] strs = pattern.split(source0);
+		StringBuffer sb = new StringBuffer();
+		sb.append("111<img src='xxxx.jpg'/> 222").append("\n");
+		sb.append("<img src='xxxx.jpg'>xxxx</img>33333").append("\n");
+		sb.append("444");
+		Pattern pattern = Pattern.compile("<img.*?\\/><\\/img>|<img.*\\/?>", Pattern.CASE_INSENSITIVE);
+//		Matcher m = pattern.matcher(sb.toString());
+//		while (m.find()) {
+//			System.out.println(m.group());
+//		}
+		
+		
+		String[] strs = pattern.split(sb.toString());
 		for (int i=0;i<strs.length;i++) {
 		    System.out.println(strs[i]);
 		} 
@@ -46,7 +56,7 @@ public class MainTest {
 	@Test
 	public void testStringJoin() {
 		List<String> source = Arrays.asList(new String[] {"a", "b", "c"});
-		
+		System.out.println(StringUtils.join(source, ":"));
 	}
 	
 	@Test
@@ -89,5 +99,25 @@ public class MainTest {
 		
 		// Save to sqlite database.
 		x3.saveDataMap(datamap);
+	}
+	
+	@Test
+	public void testDownload() throws IOException {
+		W3X w3x = new W3X();
+		String todaySource = w3x.download(W3X.DEFAULT_URL_PACK).get(W3X.DEFAULT_URL_TODAY);
+		String todayClean = w3x.cleanHtml(todaySource);
+	}
+	
+	@Test
+	public void testToString() {
+		FilmInfo info = new FilmInfo(
+				list(new String[] {"123"}), 
+				list(new String[] {"http://xxx/download.jsp"}), 
+				list(new String[] {"C:\\pic.jpg", "C:\\pic2.jpg"}), 
+				"source", 
+				"http://74.55.154.139/index1.html"
+		);
+		
+		logger.debug(info.toString());
 	}
 }
