@@ -1,3 +1,4 @@
+package com.zj.w3x.main;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -13,6 +14,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +22,7 @@ import java.util.Map.Entry;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -48,20 +51,12 @@ public class W3X {
 	public final static String DEFAULT_SPLIT_SPLITER = "-----------------------------------------------------------------------";
 	
 	private CleanerProperties props;
+	private PrettyXmlSerializer xmlSerializer;
+	private HtmlCleaner cleaner;
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, ClassNotFoundException, SQLException {
 		
-		W3X x3 = new W3X();
-		
-		Map<String, String> src = x3.download(new String[] {
-				DEFAULT_URL_TODAY, DEFAULT_URL_YESTERDAY, DEFAULT_URL_BEFORE_YESTERDAY
-		});
-		for (Entry<String, String> entry : src.entrySet()) {
-			entry.setValue(x3.cleanHtml(entry.getValue()));
-		}
-		
-		Map<String, List<FilmInfo>> datamap = x3.getDataMap(src);
-		x3.saveDataMap(datamap);
+
 	}
 	
 	public W3X() {
@@ -70,6 +65,9 @@ public class W3X {
 		props.setTranslateSpecialEntities(true);
 		props.setTransResCharsToNCR(true);
 		props.setOmitComments(true);
+		
+		xmlSerializer = new PrettyXmlSerializer(props);
+		cleaner = new HtmlCleaner(props);
 	}
 		
 	public Map<String, String> download(String[] urls) {
@@ -77,21 +75,30 @@ public class W3X {
 		HttpGet get = new HttpGet();
 		Map<String, String> results = new HashMap<String, String>();
 		for (String url : urls) {
+			boolean isSuccess = false;
 			try {
 				get.setURI(new URI(url));
 				HttpResponse resp = http.execute(get);
 				HttpEntity entity = resp.getEntity();
 				String src = IOUtils.toString(entity.getContent(), DEFAULT_ENCODING);
 				results.put(url, src);
+				isSuccess = true;
 			}
 			catch (URISyntaxException e) {
+				logger.debug(e.getMessage(), e);
 				e.printStackTrace();
 			}
 			catch (ClientProtocolException e) {
+				logger.debug(e.getMessage(), e);
 				e.printStackTrace();
 			}
 			catch (IOException e) {
+				// TODO Can retry
+				logger.debug(e.getMessage(), e);
 				e.printStackTrace();
+			}
+			finally {
+				logger.debug(String.format("URL: %1$s %2$s", url, isSuccess ? "Success." : "Failed."));
 			}
 		}
 		return results;
@@ -99,10 +106,10 @@ public class W3X {
 	
 	public String cleanHtml(String html) throws IOException {
 	 
-		TagNode tagNode = new HtmlCleaner(props).clean(html);
+		TagNode tagNode = cleaner.clean(html);
 		 
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		new PrettyXmlSerializer(props).writeToStream(tagNode, out, DEFAULT_ENCODING);
+		xmlSerializer.writeToStream(tagNode, out, DEFAULT_ENCODING);
 		return out.toString(DEFAULT_ENCODING);
 	}
 	
@@ -124,36 +131,75 @@ public class W3X {
 		return ret;
 	}
 	
-	public void saveDataMap(Map<String, List<FilmInfo>> datamap) {
+	private void splitWithImage(String source) {
+		
+	}
+	
+	/**
+	 * 
+	 * @param datamap
+	 * @throws ClassNotFoundException 
+	 * @throws SQLException 
+	 */
+	public void saveDataMap(Map<String, List<FilmInfo>> datamap) throws ClassNotFoundException {
+		Class.forName("org.sqlite.JDBC");
+		Connection conn;
 		try {
-			Class.forName("org.sqlite.JDBC");
-			Connection conn = DriverManager.getConnection("jdbc:sqlite:C:\\x3.db");
-			Statement stat = conn.createStatement();
-			PreparedStatement prep = conn.prepareStatement(
-					"INSERT INTO T_FILM VALUES(?, ?);"); // TODO Be sure the data_struct of x3.db
-			for (Entry<String, List<FilmInfo>> aDay : datamap.entrySet()) {
-				for (FilmInfo film : aDay.getValue()) {
+			conn = DriverManager.getConnection("jdbc:sqlite:C:\\x3.db");
+			conn.setAutoCommit(false);
+			
+			PreparedStatement prepfilm = conn.prepareStatement(
+					"INSERT INTO FILM(FM_DATE, FM_DESC) VALUES(?, ?);");
+			PreparedStatement preplink = conn.prepareStatement(
+					"INSERT INTO DOWNLOAD_LINK(DL_HEADER_ID, DL_LINK) VALUES(?, ?);");
+			PreparedStatement prepimage = conn.prepareStatement(
+					"INSERT INTO IMAGE(IMG_HEADER_ID, IMG_PATH) VALUES(?, ?);");
+			PreparedStatement prepheaderid = conn.prepareStatement(
+					"SELECT last_insert_rowid() as 'ID' FROM FILM;");
+			
+			
+			for (Entry<String, List<FilmInfo>> day : datamap.entrySet()) {
+				for (FilmInfo f : day.getValue()) {
+					
 					// TODO Fill sql
-					prep.setString(1, "");
-					prep.setString(2, "");
-					prep.addBatch();
+					prepfilm.clearBatch();
+					prepfilm.clearParameters();
+					prepfilm.setDate(1, new java.sql.Date(Calendar.getInstance().getTime().getTime()));
+					prepfilm.setString(2, StringUtils.join(f.getDesc(), "\n"));
+					prepfilm.executeUpdate();
+					ResultSet rs = prepheaderid.executeQuery();
+					long headerid = rs.getLong("ID");
+					
+					preplink.clearBatch();
+					preplink.clearParameters();
+					for (String link : f.getLink()) {
+						preplink.setLong(1, headerid);
+						preplink.setString(2, link);
+						preplink.addBatch();
+					}
+					preplink.executeBatch();
+					
+					prepimage.clearBatch();
+					prepimage.clearParameters();
+					for (String img : f.getPics()) {
+						prepimage.setLong(1, headerid);
+						prepimage.setString(2, img);
+						prepimage.addBatch();
+					}
+					prepimage.executeBatch();
+					
+					JDBCHelper.closeResultSet(rs);
 				}
 			}
 			
-			conn.setAutoCommit(false);
-			prep.executeBatch();
-			conn.setAutoCommit(true);
+			conn.commit();
 			
 			// TODO Use DbUtils
-			prep.close();
-			stat.close();
-			conn.close();
-		}
-		catch (ClassNotFoundException e) {
-			e.printStackTrace();
+			JDBCHelper.closeStatements(new Statement[] {prepfilm, preplink, prepimage, prepheaderid});
+			JDBCHelper.closeConnection(conn);
 		}
 		catch (SQLException e) {
-			e.printStackTrace();
+			logger.debug(e.getMessage(), e);
 		}
 	}
 }

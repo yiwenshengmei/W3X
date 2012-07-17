@@ -1,3 +1,4 @@
+package com.zj.w3x.main;
 import java.util.List;
 import java.util.Map;
 
@@ -8,6 +9,19 @@ public class FilmInfo {
 	private Map<String, byte[]> picsBinary;
 	private String source;
 	private String url;
+	
+	public FilmInfo(List<String> desc, List<String> link, List<String> pics, String source, String url) {
+		this.desc = desc;
+		this.link = link;
+		this.pics = pics;
+		this.source = source;
+		this.url = url;
+	}
+	
+	public FilmInfo() {
+		
+	}
+	
 	public List<String> getDesc() {
 		return desc;
 	}
