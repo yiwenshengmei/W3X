@@ -2,14 +2,14 @@ package com.zj.w3x;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FilmInfo {
+public class FilmBean {
 	private List<String> desc;
 	private List<String> link;
 	private List<String> imageSrcs;
 	private String source;
 	private String url;
 	
-	public FilmInfo(List<String> desc, List<String> link, List<String> imageSrcs, String source, String url) {
+	public FilmBean(List<String> desc, List<String> link, List<String> imageSrcs, String source, String url) {
 		this.desc = desc;
 		this.link = link;
 		this.imageSrcs = imageSrcs;
@@ -17,7 +17,7 @@ public class FilmInfo {
 		this.url = url;
 	}
 	
-	public FilmInfo() {
+	public FilmBean() {
 		desc = new ArrayList<String>();
 		link = new ArrayList<String>();
 		imageSrcs = new ArrayList<String>();
