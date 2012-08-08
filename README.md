@@ -10,6 +10,7 @@
 
 * JavaSE-1.6
 * Junit 4
+* commons-collections-3.1
 * commons-codec-1.4
 * commons-io.2.0.1
 * commons-lang-2.5
