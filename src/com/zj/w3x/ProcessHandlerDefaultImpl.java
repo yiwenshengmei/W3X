@@ -19,8 +19,8 @@ import org.slf4j.LoggerFactory;
 
 public class ProcessHandlerDefaultImpl implements ProcessHandler {
 	
-	public Logger logger = LoggerFactory.getLogger(ProcessHandlerDefaultImpl.class);
-	public final static String DEFAULT_SPLIT_SPLITER = "-----------------------------------------------------------------------";
+	private Logger logger = LoggerFactory.getLogger(ProcessHandlerDefaultImpl.class);
+	private final static String DEFAULT_SPLIT_SPLITER = "-----------------------------------------------------------------------";
 	private final static String ENCODING = "gbk";
 	private final static String DEFAULT_DB_FILE = "D:\\w3x.db";
 

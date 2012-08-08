@@ -1,17 +1,25 @@
 package test;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.http.client.ClientProtocolException;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.zj.w3x.ProcessHandlerDefaultImpl;
 import com.zj.w3x.W3X;
+import com.zj.w3x.W3XHelper;
 
 public class MainTest {
 	
@@ -23,6 +31,19 @@ public class MainTest {
 		x.addUrls(Arrays.asList(new String[] { W3X.DEFAULT_URL_TODAY, W3X.DEFAULT_URL_YESTERDAY, W3X.DEFAULT_URL_BEFORE_YESTERDAY }));
 		x.setProcessHandler(new ProcessHandlerDefaultImpl());
 		x.start();
+	}
+	
+	@Test
+	public void testDownloadImage() throws ClientProtocolException, URISyntaxException, IOException {
+		String url = "http://www.apache.org/images/asf_logo_wide.gif";
+		byte[] bytes = W3XHelper.downloadSingle(url, 5000, 5000);
+		FileUtils.writeByteArrayToFile(new File("D:\\" + FilenameUtils.getName(url)), bytes);
+	}
+	
+	@Test
+	public void quickTest() {
+		String filename = FilenameUtils.getName("http://www.apache.org/images/asf_logo_wide.gif");
+		logger.debug(filename);
 	}
 	
 	@Test

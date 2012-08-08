@@ -1,9 +1,11 @@
 package com.zj.w3x;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.collections.Closure;
@@ -16,6 +18,9 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.CoreConnectionPNames;
+import org.apache.http.params.HttpParams;
 import org.htmlcleaner.CleanerProperties;
 import org.htmlcleaner.HtmlCleaner;
 import org.htmlcleaner.PrettyXmlSerializer;
@@ -168,7 +173,7 @@ public class W3X {
 		}
 		return this.httpGet;
 	}
-		
+	
 	public void download(ProcessData data) throws URISyntaxException, ClientProtocolException, IOException {
 		HttpClient http = getHttpClient();
 		HttpGet get = getHttpGet();
