@@ -17,19 +17,22 @@ import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ProcessHandlerDefImpl implements ProcessHandler {
+public class ProcessHandlerDefaultImpl implements ProcessHandler {
 	
-	public Logger logger = LoggerFactory.getLogger(ProcessHandlerDefImpl.class);
+	public Logger logger = LoggerFactory.getLogger(ProcessHandlerDefaultImpl.class);
+	public final static String DEFAULT_SPLIT_SPLITER = "-----------------------------------------------------------------------";
+	private final static String ENCODING = "gbk";
+	private final static String DEFAULT_DB_FILE = "D:\\w3x.db";
 
 	@Override
 	public List<String> split(String source) {
-		if (!source.contains(W3X.DEFAULT_SPLIT_SPLITER)) { 
+		if (!source.contains(DEFAULT_SPLIT_SPLITER)) { 
 			logger.debug("No split_spliter found, return null.");
 			return null;
 		}
 		
 		// TODO zhaojie Do not use spliter, use <img>
-		return Arrays.asList(source.split(W3X.DEFAULT_SPLIT_SPLITER));
+		return Arrays.asList(source.split(DEFAULT_SPLIT_SPLITER));
 	}
 
 	@Override
@@ -54,14 +57,54 @@ public class ProcessHandlerDefImpl implements ProcessHandler {
 				
 			return bean;			
 	}
+	
+	private void createTable(Connection conn) throws SQLException {
+		StringBuilder createDownloadLinkSQL = new StringBuilder();
+		createDownloadLinkSQL.append("CREATE TABLE [DOWNLOAD_LINK] ( ");
+		createDownloadLinkSQL.append("[ID] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, ");
+		createDownloadLinkSQL.append("[DL_HEADER_ID] CHAR NOT NULL, ");
+		createDownloadLinkSQL.append("[DL_LINK] TEXT); ");
+		
+		StringBuilder createFilmSQL = new StringBuilder();
+		createFilmSQL.append("CREATE TABLE [FILM] ( ");
+		createFilmSQL.append("[ID] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, ");
+		createFilmSQL.append("[FM_DATE] TIMESTAMP NOT NULL DEFAULT (datetime(CURRENT_TIMESTAMP, 'localtime')), ");
+		createFilmSQL.append("[FM_DESC] TEXT); ");
+		
+		StringBuilder createImageSQL = new StringBuilder();
+		createImageSQL.append("CREATE TABLE [IMAGE] ( ");
+		createImageSQL.append("[ID] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, ");
+		createImageSQL.append("[IMG_HEADER_ID] INTEGER NOT NULL, ");
+		createImageSQL.append("[IMG_PATH] TEXT);");
+
+		Statement stmt = conn.createStatement();
+		for (String sql : new String[] {createDownloadLinkSQL.toString(), createImageSQL.toString(), createFilmSQL.toString()}) {
+			stmt.executeUpdate(sql);
+		}
+		stmt.close();
+	}
+	
+	private void checkOrInitTable(Connection conn) throws SQLException {
+		String sqlCheckTable = "SELECT COUNT(*) AS TBL_CNT FROM SQLITE_MASTER WHERE NAME IN ('FILM', 'DOWNLOAD_LINK', 'IMAGE');";
+		Statement stmt = conn.createStatement();
+		ResultSet rs = stmt.executeQuery(sqlCheckTable);
+		if (rs.next()) {
+			int tableCnt = rs.getInt("TBL_CNT");
+			if (tableCnt != 3) {
+				createTable(conn);
+			}
+		}
+	}
 
 	@Override
 	public void save(List<FilmBean> beans) {
 		try {
 			Class.forName("org.sqlite.JDBC");
-			Connection conn = DriverManager.getConnection("jdbc:sqlite:D:\\w3x.db");;
-			conn.setAutoCommit(false);
+			Connection conn = DriverManager.getConnection("jdbc:sqlite:" + DEFAULT_DB_FILE);
 			
+			checkOrInitTable(conn);
+			
+//			conn.setAutoCommit(false);
 			PreparedStatement prepfilm = conn.prepareStatement(
 					"INSERT INTO FILM(FM_DESC) VALUES(?);");
 			PreparedStatement preplink = conn.prepareStatement(
@@ -106,7 +149,7 @@ public class ProcessHandlerDefImpl implements ProcessHandler {
 			}
 			
 			logger.debug("Commit...");
-			conn.commit();
+//			conn.commit();
 			logger.debug("Commit successful.");
 			
 			// TODO zhaojie Use DbUtils
@@ -123,7 +166,7 @@ public class ProcessHandlerDefImpl implements ProcessHandler {
 
 	@Override
 	public String getEncoding() {
-		return W3X.DEFAULT_ENCODING;
+		return ENCODING;
 	}
 
 }

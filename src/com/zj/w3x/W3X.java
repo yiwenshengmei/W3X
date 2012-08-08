@@ -34,26 +34,40 @@ public class W3X {
 	public final static String[] DEFAULT_URL_PACK = new String[] {
 		DEFAULT_URL_TODAY, DEFAULT_URL_YESTERDAY, DEFAULT_URL_BEFORE_YESTERDAY
 	};
-	public final static String DEFAULT_DB_FILE = "x3.db";
-	public final static String DEFAULT_SOURCE_PATH = "C:\\";
-	public final static String DEFAULT_AFTER_CLEAN_PATH = "C:\\w3x(%1$s).html";
 	public final static String DEFAULT_ENCODING = "gbk";
-	public final static String DEFAULT_SPLIT_SPLITER = "-----------------------------------------------------------------------";
 	
-	private CleanerProperties props;
+	private CleanerProperties cleanerProperties;
 	private PrettyXmlSerializer xmlSerializer;
 	private HtmlCleaner cleaner;
 	
 	List<ProcessData> datas = new ArrayList<ProcessData>();
 	
 	public W3X() {
-		props = new CleanerProperties();
-		props.setTranslateSpecialEntities(true);
-		props.setTransResCharsToNCR(true);
-		props.setOmitComments(true);
-		
-		xmlSerializer = new PrettyXmlSerializer(props);
-		cleaner = new HtmlCleaner(props);
+
+	}
+	
+	private CleanerProperties getCleanerProperties() {
+		if (cleanerProperties == null) {
+			cleanerProperties = new CleanerProperties();
+			cleanerProperties.setTranslateSpecialEntities(true);
+			cleanerProperties.setTransResCharsToNCR(true);
+			cleanerProperties.setOmitComments(true);
+		}
+		return this.cleanerProperties;
+	}
+	
+	private PrettyXmlSerializer getXmlSerializer() {
+		if (xmlSerializer == null) {
+			xmlSerializer = new PrettyXmlSerializer(getCleanerProperties());
+		}
+		return this.xmlSerializer;
+	}
+	
+	private HtmlCleaner getHtmlCleaner() {
+		if (cleaner == null) {
+			cleaner = new HtmlCleaner(getCleanerProperties());
+		}
+		return cleaner;
 	}
 	
 	public void start() {
@@ -67,7 +81,7 @@ public class W3X {
 				data.setSplited(splited);
 				
 				if (splited == null) {
-					logger.debug(String.format("Splited is null in %1$s, continue.", data.getUrl()));
+					logger.debug(String.format("Splited result is nothing in %1$s, continue.", data.getUrl()));
 					continue;
 				}
 				for (String sp : splited) {
@@ -138,10 +152,26 @@ public class W3X {
 			}
 		});
 	}
+	
+	private HttpClient httpClient;
+	private HttpClient getHttpClient() {
+		if (httpClient == null) {
+			httpClient = new DefaultHttpClient();
+		}
+		return httpClient;
+	}
+	
+	private HttpGet httpGet;
+	private HttpGet getHttpGet() {
+		if (httpGet == null) {
+			httpGet = new HttpGet();
+		}
+		return this.httpGet;
+	}
 		
 	public void download(ProcessData data) throws URISyntaxException, ClientProtocolException, IOException {
-		HttpClient http = new DefaultHttpClient();
-		HttpGet get = new HttpGet();
+		HttpClient http = getHttpClient();
+		HttpGet get = getHttpGet();
 		get.setURI(new URI(data.getUrl()));
 		
 		logger.debug("Using encoding: " + data.getHandler().getEncoding());
@@ -156,11 +186,11 @@ public class W3X {
 	}
 	
 	public void cleanHtml(ProcessData data) throws IOException {
-		TagNode tagNode = cleaner.clean(data.getSource());
+		TagNode tagNode = getHtmlCleaner().clean(data.getSource());
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		
-		xmlSerializer.writeToStream(tagNode, out, DEFAULT_ENCODING);
-		String cleaned = out.toString(DEFAULT_ENCODING);
+		getXmlSerializer().writeToStream(tagNode, out, data.getHandler().getEncoding());
+		String cleaned = out.toString(data.getHandler().getEncoding());
 		
 		data.setSource(cleaned);
 	}
