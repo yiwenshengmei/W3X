@@ -7,7 +7,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.apache.commons.collections.Closure;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.Predicate;
@@ -33,10 +37,10 @@ public class W3X {
 	
 	Logger logger = LoggerFactory.getLogger(W3X.class);
 	
-	public final static String DEFAULT_URL_TODAY     = "http://74.55.154.143/index1.html";
-	public final static String DEFAULT_URL_YESTERDAY = "http://74.55.154.143/index2.html";
-	public final static String DEFAULT_URL_BEFORE_YESTERDAY = "http://74.55.154.143/index3.html";
-	public final static String[] DEFAULT_URL_PACK = new String[] {
+	public final static String DEFAULT_URL_TODAY            = "http://74.55.154.143/index1.html";
+	public final static String DEFAULT_URL_YESTERDAY        = "http://74.55.154.143/index2.htm";
+	public final static String DEFAULT_URL_BEFORE_YESTERDAY = "http://74.55.154.143/index3.htm";
+	public final static String[] DEFAULT_URLS = new String[] {
 		DEFAULT_URL_TODAY, DEFAULT_URL_YESTERDAY, DEFAULT_URL_BEFORE_YESTERDAY
 	};
 	public final static String DEFAULT_ENCODING = "gbk";
@@ -76,43 +80,49 @@ public class W3X {
 	}
 	
 	public void start() {
-		int successCnt = 0;
-		for (ProcessData data : datas) {
+		int nSuccess = 0;
+		for (ProcessData aDay : datas) {
 			try {
-				download(data);
-				cleanHtml(data);
+				
+				logger.debug("Start >>>>>>>>>>>> " + aDay.getUrl());
+				
+				download(aDay);
+				cleanHtml(aDay);
 			
-				List<String> splited = data.getHandler().split(data.getSource());
-				data.setSplited(splited);
+				List<String> splited = aDay.getHandler().split(aDay.getSource());
+				aDay.setSplited(splited);
 				
 				if (splited == null) {
-					logger.debug(String.format("Splited result is nothing in %1$s, continue.", data.getUrl()));
+					logger.debug(String.format("Splited result is nothing in %1$s, continue.", aDay.getUrl()));
 					continue;
 				}
 				for (String sp : splited) {
-					FilmBean bean = data.getHandler().resolve(sp);
-					bean.setUrl(data.getUrl());
+					FilmBean bean = aDay.getHandler().resolve(sp);
+					bean.setUrl(aDay.getUrl());
 					
-					logger.debug(bean.toString());
 					
-					if (data.getBeans() != null) {
-						data.getBeans().add(bean);
+					if (aDay.getBeans() != null) {
+						aDay.getBeans().add(bean);
 					}
 					else {
 						List<FilmBean> beans = new ArrayList<FilmBean>();
 						beans.add(bean);
-						data.setBeans(beans);
+						aDay.setBeans(beans);
 					}
 				}
+				logger.debug(String.format("%1$s film_beans created.", aDay.getBeans().size()));
 				
-				data.getHandler().save(data.getBeans());
-				successCnt++;
+//				aDay.getHandler().beforeSave(aDay.getBeans());
+				aDay.getHandler().save(aDay.getBeans());
+				
+				logger.debug("End >>>>>>>>>>>> " + aDay.getUrl());
+				nSuccess++;
 			}
 			catch (Exception e) {
 				logger.error(e.getMessage(), e);
 			}
 		}
-		logger.debug(String.format("Done. Success: %1$s, Failed: %2$s", successCnt, datas.size() - successCnt));
+		logger.debug(String.format("Total Done. Success: %1$s, Failed: %2$s", nSuccess, datas.size() - nSuccess));
 	}
 	
 	public void addUrl(final String url) {
@@ -166,26 +176,28 @@ public class W3X {
 		return httpClient;
 	}
 	
-	private HttpGet httpGet;
-	private HttpGet getHttpGet() {
-		if (httpGet == null) {
-			httpGet = new HttpGet();
-		}
-		return this.httpGet;
-	}
-	
 	public void download(ProcessData data) throws URISyntaxException, ClientProtocolException, IOException {
 		HttpClient http = getHttpClient();
-		HttpGet get = getHttpGet();
-		get.setURI(new URI(data.getUrl()));
+		HttpGet request = new HttpGet();
+		request.setURI(new URI(data.getUrl()));
 		
-		logger.debug("Using encoding: " + data.getHandler().getEncoding());
-		HttpResponse resp = http.execute(get);
+		Map<String, String> userParam = new HashMap<String, String>();
+		data.getHandler().beforeDownload(data.getUrl(), userParam);
+		
+		if (userParam.size() > 0) {
+			HttpParams param = new BasicHttpParams();
+			for (Entry<String, String> entry : userParam.entrySet()) {
+				param.setParameter(entry.getKey(), entry.getValue());
+			}
+			request.setParams(param);
+		}
+		
+		HttpResponse resp = http.execute(request);
 		HttpEntity entity = resp.getEntity();
 
 		logger.debug("Begin download " + data.getUrl());
 		String source = IOUtils.toString(entity.getContent(), data.getHandler().getEncoding());
-		logger.debug(data.getUrl() + " download successful.");
+		logger.debug("End download " + data.getUrl());
 		
 		data.setSource(source);
 	}
