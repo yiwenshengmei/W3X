@@ -4,17 +4,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class FilmBean {
+public class Film {
 	private List<String> desc;
 	private List<String> downloadLinks;
 	private String filmSource;
 	private String url;
-	private List<ImageURL> imageURLs;
+	private List<Image> images;
 	
-	public FilmBean() {
+	public Film() {
 		desc = new ArrayList<String>();
 		downloadLinks = new ArrayList<String>();
-		imageURLs = new ArrayList<ImageURL>();
+		images = new ArrayList<Image>();
 	}
 	
 	public List<String> getDesc() {
@@ -46,24 +46,23 @@ public class FilmBean {
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 		String spliter = "\n------------------------------------";
-		sb.append(spliter).append("\n");
-		sb.append("from url: ").append(url).append("\n");
+//		sb.append(spliter).append("\n");
 		for (String d : desc) {
-			sb.append("desc: ").append(d).append("\n");
+			sb.append(d).append("\n");
 		}
 		for (String l : downloadLinks) {
 			sb.append("link: ").append(l).append("\n");
 		}
-		sb.append("------------------------------------");
+		sb.append(spliter);
 		return sb.toString();
 	}
 
-	public List<ImageURL> getImageURLs() {
-		return imageURLs;
+	public List<Image> getImages() {
+		return images;
 	}
 
-	public void setImageURLs(List<ImageURL> imageURLs) {
-		this.imageURLs = imageURLs;
+	public void setImages(List<Image> imageURLs) {
+		this.images = imageURLs;
 	}
 
 }

@@ -10,7 +10,7 @@ public class ProcessData {
 	private String url;
 	private String source;
 	private List<String> splited;
-	private List<FilmBean> beans;
+	private List<Film> beans;
 	private ProcessHandler handler;
 	
 	public String getUrl() {
@@ -31,10 +31,10 @@ public class ProcessData {
 	public void setSplited(List<String> splited) {
 		this.splited = splited;
 	}
-	public List<FilmBean> getBeans() {
+	public List<Film> getBeans() {
 		return beans;
 	}
-	public void setBeans(List<FilmBean> beans) {
+	public void setBeans(List<Film> beans) {
 		this.beans = beans;
 	}
 	public ProcessHandler getHandler() {

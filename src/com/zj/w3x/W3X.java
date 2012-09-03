@@ -37,15 +37,15 @@ public class W3X {
 	
 	Logger logger = LoggerFactory.getLogger(W3X.class);
 	
-	public final static String DEFAULT_URL_TODAY            = "http://74.55.154.143/index1.html";
-	public final static String DEFAULT_URL_YESTERDAY        = "http://74.55.154.143/index2.htm";
-	public final static String DEFAULT_URL_BEFORE_YESTERDAY = "http://74.55.154.143/index3.htm";
+	public final static String URL_TODAY            = "http://74.55.154.143/index1.html";
+	public final static String URL_YESTERDAY        = "http://74.55.154.143/index2.htm";
+	public final static String URL_BEFORE_YESTERDAY = "http://74.55.154.143/index3.htm";
 	public final static String[] DEFAULT_URLS = new String[] {
-		DEFAULT_URL_TODAY, DEFAULT_URL_YESTERDAY, DEFAULT_URL_BEFORE_YESTERDAY
+		URL_TODAY, URL_YESTERDAY, URL_BEFORE_YESTERDAY
 	};
 	public final static String DEFAULT_ENCODING = "gbk";
 	
-	private CleanerProperties cleanerProperties;
+	private CleanerProperties props;
 	private PrettyXmlSerializer xmlSerializer;
 	private HtmlCleaner cleaner;
 	
@@ -56,13 +56,14 @@ public class W3X {
 	}
 	
 	private CleanerProperties getCleanerProperties() {
-		if (cleanerProperties == null) {
-			cleanerProperties = new CleanerProperties();
-			cleanerProperties.setTranslateSpecialEntities(true);
-			cleanerProperties.setTransResCharsToNCR(true);
-			cleanerProperties.setOmitComments(true);
+		if (props == null) {
+			props = new CleanerProperties();
+			// 把js和css转换成CDATA
+			props.setUseCdataForScriptAndStyle(true);
+			// 过滤注释
+			props.setOmitComments(true);
 		}
-		return this.cleanerProperties;
+		return this.props;
 	}
 	
 	private PrettyXmlSerializer getXmlSerializer() {
@@ -97,7 +98,7 @@ public class W3X {
 					continue;
 				}
 				for (String sp : splited) {
-					FilmBean bean = aDay.getHandler().resolve(sp);
+					Film bean = aDay.getHandler().resolve(sp);
 					bean.setUrl(aDay.getUrl());
 					
 					
@@ -105,14 +106,14 @@ public class W3X {
 						aDay.getBeans().add(bean);
 					}
 					else {
-						List<FilmBean> beans = new ArrayList<FilmBean>();
+						List<Film> beans = new ArrayList<Film>();
 						beans.add(bean);
 						aDay.setBeans(beans);
 					}
 				}
 				logger.debug(String.format("%1$s film_beans created.", aDay.getBeans().size()));
 				
-//				aDay.getHandler().beforeSave(aDay.getBeans());
+				aDay.getHandler().beforeSave(aDay.getBeans());
 				aDay.getHandler().save(aDay.getBeans());
 				
 				logger.debug("End >>>>>>>>>>>> " + aDay.getUrl());

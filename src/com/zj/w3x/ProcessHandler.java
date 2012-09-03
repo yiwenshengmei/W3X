@@ -9,9 +9,9 @@ import java.util.Map;
 
 public interface ProcessHandler {
 	public List<String> split(String source);
-	public FilmBean resolve(String splited);
-	public void save(List<FilmBean> beans);
+	public Film resolve(String splited);
+	public void save(List<Film> beans);
 	public String getEncoding();
-	public void beforeSave(List<FilmBean> beans);
+	public void beforeSave(List<Film> beans) throws Exception;
 	public void beforeDownload(String url, Map<String, String> param);
 }
