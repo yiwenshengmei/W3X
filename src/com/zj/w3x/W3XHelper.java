@@ -1,142 +1,101 @@
 package com.zj.w3x;
 
-import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.Predicate;
-import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.CoreConnectionPNames;
-import org.apache.http.params.HttpParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class W3XHelper {
 	
-	private static HttpClient httpClient;
 	private static Logger logger = LoggerFactory.getLogger(W3XHelper.class);
 	
-	private static HttpClient getHttpClient() {
-		if (httpClient == null) {
-			httpClient = new DefaultHttpClient();
-		}
-		return httpClient;
-	}
-	
-	public static byte[] downloadSingle(String url) throws FileNotFoundException, IOException {
-		return IOUtils.toByteArray(new URL(url).openStream());
-	}
-	
-	public static byte[] downloadSingle(String url, int sockTimeout, int connTimeout, boolean isMultiThread) throws URISyntaxException, ClientProtocolException, IOException {
-		HttpClient http = isMultiThread ? new DefaultHttpClient() : getHttpClient();
-		HttpGet request = new HttpGet();
-		request.setURI(new URI(url));
-		
-		HttpParams param = new BasicHttpParams();
-		param.setParameter(CoreConnectionPNames.SO_TIMEOUT, sockTimeout);
-		param.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, connTimeout);
-		
-		request.setParams(param);
-		HttpResponse resp = http.execute(request);
-		HttpEntity entity = resp.getEntity();
-		
-		return IOUtils.toByteArray(entity.getContent());
-	}
-	
-	public static byte[] downloadSingle(String url, int connTimeout, int readTimeout) throws IOException {
-		URL _url = new URL(url);
-		URLConnection conn = _url.openConnection();
-		conn.setConnectTimeout(connTimeout);
-		conn.setReadTimeout(readTimeout);
-		
-		ByteArrayOutputStream ret = new ByteArrayOutputStream();
-		InputStream inStream = conn.getInputStream();
-		IOUtils.copy(inStream, ret);
-		IOUtils.closeQuietly(inStream);
-		
-		return ret.toByteArray();
-	}
-	
-	private static class DownloadTask implements Callable<DownloadTask> {
-		
-		private Image image;
-		private int sockTimout;
-		private int connTimeout;
-
-		public DownloadTask(Image image, int sockTimeout, int connTimeout) {
-			this.image = image;
-			this.sockTimout = sockTimeout;
-			this.connTimeout = connTimeout;
-		}
-
-		@Override
-		public DownloadTask call() throws Exception {
-			this.image.setBinary(downloadSingle(image.getNeturl(), sockTimout, connTimeout, true));
-			return this;
-		}
-
-		public Image getImage() {
-			return image;
-		}
-	}
-	
-	public static List<Image> summaryImages(List<Film> beans) {
+	public static List<Image> sumImages(List<Movie> beans) {
 		List<Image> totalImgs = new ArrayList<Image>();
-		for (Film bean : beans) {
+		for (Movie bean : beans) {
 			totalImgs.addAll(bean.getImages());
 		}
 		return totalImgs;
 	}
 	
-	public static void multiDownload(List<Film> beans, int sockTimeout, int connTimeout) {
-		List<Image> totalImgs = summaryImages(beans);
-		logger.debug("Start download images, total: " + totalImgs.size());
-		ExecutorService thPool = getExecutor();
-		List<Future<DownloadTask>> futures = new ArrayList<Future<DownloadTask>>();
-		
-		// Add task to ThreadPool.
-		for (Film bean : beans) {
-			for (Image img : bean.getImages())
-				futures.add(thPool.submit(new DownloadTask(img, sockTimeout, connTimeout)));
+	public static List<Link> sumLinks(List<Movie> mvs) {
+		List<Link> totalLinks = new ArrayList<Link>();
+		for (Movie mv : mvs) {
+			totalLinks.addAll(mv.getDownloadLinks());
 		}
+		return totalLinks;
+	}
+	
+	public static void getTorrents(List<Movie> movies, int readTimeout, int connTimeout) {
 		
-		// Get result from task.
+		List<Link> totalTorrents = sumLinks(movies);
+		logger.debug("Start get torrent, total: " + totalTorrents.size());
+		ExecutorService thPool = getExecutor();
+		List<Future<GetTorrentTask>> tasks = new ArrayList<Future<GetTorrentTask>>();
+		
+		for (Link torrent : totalTorrents) 
+			tasks.add(thPool.submit(new GetTorrentTask(torrent, readTimeout, connTimeout)));
+		
 		int nSuccess = 0;
-		for (Future<DownloadTask> f : futures) {
+		for (Future<GetTorrentTask> f : tasks) {
 			try {
-				DownloadTask tsk = f.get();
-				tsk.getImage().setDownload(true);				
-				W3XHelper.logger.debug("¡Ì");
-				nSuccess++;
+				GetTorrentTask tsk = f.get();
+				if (tsk.getTorrent().isDownload()) nSuccess++;
 			}
 			catch (Exception ex) {
-				W3XHelper.logger.debug("X " + ex.getMessage());
-//				W3XHelper.logger.error(ex.getMessage(), ex);
+				logger.debug(ex.getMessage());
 			}
 		}
 		
-		logger.debug(String.format("Done. %1$s success, %2$s failed.", nSuccess, totalImgs.size() - nSuccess));
+		logger.info(String.format("Done. %1$s success, %2$s failed.", nSuccess, totalTorrents.size() - nSuccess));
+		
+		@SuppressWarnings("unchecked")
+		Collection<Image> fails = CollectionUtils.select(totalTorrents, new Predicate() {
+			
+			@Override
+			public boolean evaluate(Object arg0) {
+				return !((Link) arg0).isDownload();
+			}
+		});
+		
+		if (fails.size() > 0) {
+			logger.info("failed torrents are: ");
+			String prefix = "    ";
+			for (Link torrent : fails) {
+				logger.info(prefix + torrent.getNeturl());
+			}
+		}
+		
+	}
+	
+	public static void getImages(List<Movie> beans, int readTimeout, int connTimeout) {
+		List<Image> totalImgs = sumImages(beans);
+		logger.info("Start download images, total: " + totalImgs.size());
+		ExecutorService thPool = getExecutor();
+		List<Future<GetImageTask>> futures = new ArrayList<Future<GetImageTask>>();
+		
+		for (Image img : totalImgs) {
+			futures.add(thPool.submit(new GetImageTask(img, readTimeout, connTimeout)));
+		}
+		
+		int nSuccess = 0;
+		for (Future<GetImageTask> f : futures) {
+			try {
+				GetImageTask tsk = f.get();
+				if (tsk.getImage().isDownload()) nSuccess++;
+			}
+			catch (Exception ex) {
+				logger.debug(ex.getMessage());
+			}
+		}
+		
+		logger.info(String.format("Done. %1$s success, %2$s failed.", nSuccess, totalImgs.size() - nSuccess));
 		
 		@SuppressWarnings("unchecked")
 		Collection<Image> fails = CollectionUtils.select(totalImgs, new Predicate() {
@@ -148,15 +107,26 @@ public class W3XHelper {
 		});
 		
 		if (fails.size() > 0) {
-			logger.debug("Fails are: ");
-			String prefix = " * ";
+			logger.info("failed images are: ");
+			String prefix = "    ";
 			for (Image img : fails) {
-				logger.debug(prefix + img.getNeturl());
+				logger.info(prefix + img.getNeturl());
 			}
 		}
 	}
 	
-	private static ExecutorService getExecutor() {
-		return Executors.newFixedThreadPool(80);
+	private static ExecutorService thPool = null;
+	public static ExecutorService getExecutor() {
+		if (thPool == null) {
+			thPool = Executors.newFixedThreadPool(80);
+			return thPool;
+		}
+		else {
+			return thPool;
+		}
+	}
+	
+	public static void shutdownThreadPool() {
+		if (thPool != null) thPool.shutdown();
 	}
 }

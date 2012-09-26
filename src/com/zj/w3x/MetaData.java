@@ -6,11 +6,11 @@ package com.zj.w3x;
 
 import java.util.List;
 
-public class ProcessData {
+public class MetaData {
 	private String url;
 	private String source;
 	private List<String> splited;
-	private List<Film> beans;
+	private List<Movie> beans;
 	private ProcessHandler handler;
 	
 	public String getUrl() {
@@ -31,10 +31,10 @@ public class ProcessData {
 	public void setSplited(List<String> splited) {
 		this.splited = splited;
 	}
-	public List<Film> getBeans() {
+	public List<Movie> getBeans() {
 		return beans;
 	}
-	public void setBeans(List<Film> beans) {
+	public void setBeans(List<Movie> beans) {
 		this.beans = beans;
 	}
 	public ProcessHandler getHandler() {
