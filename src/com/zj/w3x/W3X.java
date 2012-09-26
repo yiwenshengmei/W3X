@@ -43,9 +43,9 @@ public class W3X {
 	public static String URL_TODAY                  = "http://74.55.154.143/index1.html";
 	public static String URL_YESTERDAY              = "http://74.55.154.143/index2.htm";
 	public static String URL_BEFORE_YESTERDAY       = "http://74.55.154.143/index3.htm";
-	public final static String SAVE_PATH_IMG        = "E:\\Flim\\w3x\\images";
-	public final static String SAVE_PATH_TORRENT    = "E:\\Film\\w3x\\torrents";
-	public final static String DB_PATH              = "E:\\w3x.db";
+	public final static String SAVE_PATH_IMG        = "C:\\w3x\\images";
+	public final static String SAVE_PATH_TORRENT    = "C:\\w3x\\torrents";
+	public final static String DB_PATH              = "C:\\w3x.db";
 	public static boolean      CREATE_REPORT_FILE   = false;
 	public final static String SPILTER              = "------------------------------------------------";
 	public final static String ENCODING_DWONLOAD    = "gb2312";
@@ -106,8 +106,8 @@ public class W3X {
 		List<Day> days = new ArrayList<Day>();
 		
 		Map<String, String> urls = new HashMap<String, String>(); 
-//		urls.put("Today", URL_TODAY);
-//		urls.put("Yesterday", URL_YESTERDAY);
+		urls.put("Today", URL_TODAY);
+		urls.put("Yesterday", URL_YESTERDAY);
 		urls.put("BeforeYesterday", URL_BEFORE_YESTERDAY);
 		
 		for (Entry<String, String> entry : urls.entrySet()) {
